@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HKS Law — Practice Management</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  /* ── CONFIG — paste your values here after setup ── */
+  /* SUPABASE_URL and SUPABASE_KEY go in the script below */
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;background:#f5f5f0;color:#1a1a1a;min-height:100vh}
+  .hidden{display:none!important}
+
+  /* Login */
+  .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f5f0}
+  .login-card{background:#fff;border:1px solid #e5e5e0;border-radius:12px;padding:32px;width:320px;text-align:center}
+  .login-card h1{font-size:20px;font-weight:500;margin-bottom:4px}
+  .login-card p{font-size:12px;color:#888;margin-bottom:24px}
+  .google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;color:#333;transition:background 0.15s}
+  .google-btn:hover{background:#f9f9f9}
+  .login-error{font-size:12px;color:#c0392b;margin-top:12px}
+
+  /* Shell */
+  .shell{display:grid;grid-template-columns:200px 1fr;min-height:100vh}
+  .sidebar{background:#fff;border-right:1px solid #e5e5e0;display:flex;flex-direction:column;padding:0}
+  .sidebar-logo{padding:16px;border-bottom:1px solid #e5e5e0}
+  .sidebar-logo .firm{font-size:14px;font-weight:500}
+  .sidebar-logo .sub{font-size:11px;color:#888;margin-top:2px}
+  .nav-item{display:flex;align-items:center;gap:8px;padding:9px 16px;cursor:pointer;font-size:13px;color:#666;border-left:2px solid transparent;transition:all 0.1s}
+  .nav-item:hover{background:#f5f5f0;color:#1a1a1a}
+  .nav-item.active{color:#3C3489;border-left-color:#534AB7;background:#EEEDFE}
+  .nav-section{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;color:#aaa;padding:12px 16px 4px}
+  .sidebar-footer{margin-top:auto;padding:12px 16px;border-top:1px solid #e5e5e0}
+  .user-row{display:flex;align-items:center;gap:8px}
+  .avatar{width:28px;height:28px;border-radius:50%;background:#EEEDFE;color:#3C3489;font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .user-name{font-size:12px;font-weight:500}
+  .user-role{font-size:11px;color:#888}
+  .sign-out{font-size:11px;color:#888;cursor:pointer;margin-top:6px}
+  .sign-out:hover{color:#c0392b}
+
+  /* Main */
+  .main{display:flex;flex-direction:column}
+  .topbar{background:#fff;border-bottom:1px solid #e5e5e0;padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+  .topbar-title{font-size:15px;font-weight:500}
+  .content{padding:20px;flex:1}
+
+  /* Metrics */
+  .metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+  .metric{background:#fff;border:1px solid #e5e5e0;border-radius:10px;padding:14px}
+  .metric-label{font-size:11px;color:#888;margin-bottom:6px}
+  .metric-val{font-size:22px;font-weight:500}
+  .metric-sub{font-size:11px;color:#888;margin-top:3px}
+  .val-red{color:#c0392b}
+  .val-amber{color:#e67e22}
+  .val-green{color:#27ae60}
+
+  /* Panel */
+  .panel{background:#fff;border:1px solid #e5e5e0;border-radius:10px;overflow:hidden;margin-bottom:14px}
+  .panel-head{padding:10px 14px;background:#f9f9f7;border-bottom:1px solid #e5e5e0;font-size:12px;font-weight:500;display:flex;justify-content:space-between;align-items:center}
+  .panel-action{font-size:11px;color:#534AB7;cursor:pointer;font-weight:400}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+  /* File rows */
+  .file-row{display:grid;grid-template-columns:1fr 80px 70px 55px;gap:8px;align-items:center;padding:9px 14px;border-bottom:1px solid #f0f0eb;cursor:pointer;transition:background 0.1s}
+  .file-row:hover{background:#f9f9f7}
+  .file-row:last-child{border-bottom:none}
+  .file-name{font-size:12px;font-weight:500}
+  .file-matter{font-size:11px;color:#888;margin-top:1px}
+  .badge{font-size:10px;padding:2px 7px;border-radius:10px;text-align:center;white-space:nowrap}
+  .badge-family{background:#EEEDFE;color:#3C3489}
+  .badge-realestate{background:#E1F5EE;color:#085041}
+  .badge-immigration{background:#FAEEDA;color:#633806}
+  .badge-civil{background:#FAECE7;color:#4A1B0C}
+  .badge-criminal{background:#FBEAF0;color:#4B1528}
+  .deadline-urgent{font-size:11px;color:#c0392b;font-weight:500}
+  .deadline-soon{font-size:11px;color:#e67e22;font-weight:500}
+  .deadline-ok{font-size:11px;color:#27ae60}
+  .prog-wrap{height:4px;background:#eee;border-radius:2px;overflow:hidden}
+  .prog-fill{height:100%;border-radius:2px}
+  .prog-red{background:#c0392b}
+  .prog-amber{background:#e67e22}
+  .prog-green{background:#27ae60}
+  .prog-blue{background:#534AB7}
+
+  /* Alert rows */
+  .alert-row{display:flex;gap:8px;padding:9px 14px;border-bottom:1px solid #f0f0eb;align-items:flex-start}
+  .alert-row:last-child{border-bottom:none}
+  .alert-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px}
+  .alert-dot-red{background:#c0392b}
+  .alert-dot-amber{background:#e67e22}
+  .alert-text{font-size:12px}
+  .alert-sub{font-size:11px;color:#888;margin-top:1px}
+
+  /* Buttons */
+  .btn{padding:7px 14px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:12px;color:#333;transition:all 0.15s}
+  .btn:hover{background:#f5f5f0}
+  .btn-primary{background:#3C3489;color:#EEEDFE;border-color:#3C3489}
+  .btn-primary:hover{background:#534AB7}
+  .btn-sm{padding:5px 10px;font-size:11px}
+
+  /* Forms */
+  .form-group{margin-bottom:14px}
+  .form-label{font-size:12px;font-weight:500;margin-bottom:5px;display:block}
+  .form-input{width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;background:#fff;color:#1a1a1a}
+  .form-input:focus{outline:none;border-color:#534AB7}
+  .form-select{width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;background:#fff;color:#1a1a1a}
+  select.form-input{padding:7px 10px}
+
+  /* Checklist */
+  .stage-block{border-bottom:1px solid #f0f0eb}
+  .stage-block:last-child{border-bottom:none}
+  .stage-head{padding:10px 14px;background:#f9f9f7;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;user-select:none}
+  .stage-head:hover{background:#f5f5f0}
+  .stage-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .stage-items{display:none;padding:4px 0}
+  .stage-items.open{display:block}
+  .ck-item{display:flex;align-items:flex-start;gap:8px;padding:8px 14px;border-bottom:1px solid #f5f5f0;font-size:12px}
+  .ck-item:last-child{border-bottom:none}
+  .ck-box{width:15px;height:15px;border:1.5px solid #ccc;border-radius:3px;flex-shrink:0;margin-top:1px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center}
+  .ck-box.done{background:#534AB7;border-color:#534AB7}
+  .ck-box.done::after{content:'';width:8px;height:4px;border-left:1.5px solid #fff;border-bottom:1.5px solid #fff;transform:rotate(-45deg) translateY(-1px);display:block}
+  .ck-label{flex:1;line-height:1.5}
+  .ck-note{font-size:11px;color:#888;margin-top:2px}
+  .ck-flag{font-size:11px;color:#c0392b;font-weight:500;margin-top:2px}
+  .ck-clio{font-size:10px;color:#534AB7;margin-top:2px}
+
+  /* Hold banner */
+  .hold-banner{background:#FFF8E7;border:1px solid #f0c060;border-radius:8px;padding:9px 12px;font-size:12px;color:#7a5a00;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+
+  /* File detail layout */
+  .detail-grid{display:grid;grid-template-columns:1fr 180px;gap:14px}
+  .side-card{background:#fff;border:1px solid #e5e5e0;border-radius:10px;overflow:hidden;margin-bottom:10px}
+  .side-card-head{padding:8px 12px;background:#f9f9f7;border-bottom:1px solid #e5e5e0;font-size:11px;font-weight:500;color:#666}
+  .side-card-body{padding:12px}
+  .side-stat-val{font-size:18px;font-weight:500}
+  .side-stat-sub{font-size:11px;color:#888;margin-top:2px}
+
+  /* Tabs */
+  .tabs{display:flex;border-bottom:1px solid #e5e5e0;background:#fff;margin-bottom:0}
+  .tab{padding:8px 16px;font-size:12px;cursor:pointer;color:#888;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tab.active{color:#3C3489;border-bottom-color:#534AB7;font-weight:500}
+
+  /* Staff table */
+  .staff-row{display:grid;grid-template-columns:32px 1fr 90px 70px 70px;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid #f0f0eb}
+  .staff-row:last-child{border-bottom:none}
+  .staff-init{width:32px;height:32px;border-radius:50%;background:#E1F5EE;color:#085041;font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+  /* Modal */
+  .modal-overlay{position:absolute;top:0;left:0;right:0;min-height:100%;background:rgba(0,0,0,0.4);display:flex;align-items:flex-start;justify-content:center;padding-top:60px;z-index:100}
+  .modal{background:#fff;border-radius:12px;padding:20px;width:480px;max-width:90vw}
+  .modal h3{font-size:15px;font-weight:500;margin-bottom:16px}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+
+  /* Audit */
+  .audit-row{display:grid;grid-template-columns:1fr 80px 80px 80px 90px;gap:8px;align-items:center;padding:8px 14px;border-bottom:1px solid #f0f0eb;font-size:12px}
+  .audit-row:last-child{border-bottom:none}
+
+  /* Responsive */
+  @media(max-width:768px){
+    .shell{grid-template-columns:1fr}
+    .sidebar{display:none}
+    .metric-grid{grid-template-columns:1fr 1fr}
+    .two-col{grid-template-columns:1fr}
+    .detail-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" class="login-wrap">
+  <div class="login-card">
+    <h1>HKS Law</h1>
+    <p>Practice management — staff access only</p>
+    <button class="google-btn" onclick="signInWithGoogle()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
+      Sign in with Google
+    </button>
+    <div id="login-error" class="login-error hidden"></div>
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div id="app-shell" class="shell hidden" style="position:relative">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="firm">HKS Law</div>
+      <div class="sub">Practice management</div>
+    </div>
+    <div class="nav-section">Overview</div>
+    <div class="nav-item active" onclick="showView('dashboard',this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" onclick="showView('files',this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h5l2 2h5v9H2z"/></svg>
+      Active files
+    </div>
+    <div class="nav-section">Workflows</div>
+    <div class="nav-item" onclick="showView('newfile',this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v6M5 8h6"/></svg>
+      New file
+    </div>
+    <div class="nav-section">Reports</div>
+    <div class="nav-item" onclick="showView('audit',this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1" width="12" height="14" rx="1"/><path d="M5 5h6M5 8h6M5 11h4"/></svg>
+      Audit
+    </div>
+    <div class="nav-item" id="staff-nav" onclick="showView('staff',this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/></svg>
+      Staff
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-name" id="user-name">Loading...</div>
+          <div class="user-role" id="user-role">Staff</div>
+        </div>
+      </div>
+      <div class="sign-out" onclick="signOut()">Sign out</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <span class="topbar-title" id="topbar-title">Dashboard</span>
+      <span style="font-size:11px;color:#888" id="topbar-date"></span>
+    </div>
+    <div class="content" id="main-content">
+      <div style="text-align:center;padding:40px;color:#888">Loading...</div>
+    </div>
+  </div>
+
+  <!-- MODAL CONTAINER -->
+  <div id="modal-container"></div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// CONFIG — REPLACE THESE WITH YOUR VALUES
+// ═══════════════════════════════════════════
+const SUPABASE_URL = 'YOUR_SUPABASE_URL'
+const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY'
+const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'
+
+const ALLOWED_EMAILS = [
+  'ayushi.hkslaw@gmail.com',
+  'rabia.hkslaw@gmail.com',
+  'sales.hkslaw@gmail.com',
+  'sales@hkslaw.ca',
+  'hkslawyer.ds@gmail.com',
+  'hkslawyer@gmail.com',
+  'lawyer@hkslaw.ca',
+]
+const OWNER_EMAILS = ['hkslawyer@gmail.com','lawyer@hkslaw.ca']
+
+// ═══════════════════════════════════════════
+// SUPABASE INIT
+// ═══════════════════════════════════════════
+const { createClient } = supabase
+const db = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+let currentUser = null
+let currentView = 'dashboard'
+let currentFileId = null
+
+// ═══════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════
+async function signInWithGoogle() {
+  const { error } = await db.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  })
+  if (error) showLoginError(error.message)
+}
+
+async function signOut() {
+  await db.auth.signOut()
+  location.reload()
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('login-error')
+  el.textContent = msg
+  el.classList.remove('hidden')
+}
+
+async function initAuth() {
+  const { data: { session } } = await db.auth.getSession()
+  if (session?.user) {
+    const email = session.user.email.toLowerCase()
+    if (!ALLOWED_EMAILS.includes(email)) {
+      await db.auth.signOut()
+      showLoginError('Access denied. This system is restricted to HKS Law staff only.')
+      return
+    }
+    currentUser = {
+      id: session.user.id,
+      email,
+      name: session.user.user_metadata?.full_name || email.split('@')[0],
+      isOwner: OWNER_EMAILS.includes(email),
+    }
+    bootApp()
+  }
+
+  db.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session?.user) {
+      const email = session.user.email.toLowerCase()
+      if (!ALLOWED_EMAILS.includes(email)) {
+        await db.auth.signOut()
+        showLoginError('Access denied.')
+        return
+      }
+      currentUser = {
+        id: session.user.id,
+        email,
+        name: session.user.user_metadata?.full_name || email.split('@')[0],
+        isOwner: OWNER_EMAILS.includes(email),
+      }
+      bootApp()
+    }
+  })
+}
+
+function bootApp() {
+  document.getElementById('login-screen').classList.add('hidden')
+  document.getElementById('app-shell').classList.remove('hidden')
+  const initials = currentUser.name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2)
+  document.getElementById('user-avatar').textContent = initials
+  document.getElementById('user-name').textContent = currentUser.name
+  document.getElementById('user-role').textContent = currentUser.isOwner ? 'Owner' : 'Staff'
+  document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})
+  if (!currentUser.isOwner) document.getElementById('staff-nav').classList.add('hidden')
+  showView('dashboard', document.querySelector('.nav-item.active'))
+}
+
+// ═══════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════
+const VIEW_TITLES = {dashboard:'Firm dashboard',files:'Active files',newfile:'New file',audit:'Audit reports',staff:'Staff management',filedetail:'File detail'}
+
+function showView(view, navEl) {
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
+  if (navEl) navEl.classList.add('active')
+  document.getElementById('topbar-title').textContent = VIEW_TITLES[view] || view
+  currentView = view
+  const content = document.getElementById('main-content')
+  content.innerHTML = '<div style="text-align:center;padding:40px;color:#888;font-size:13px">Loading...</div>'
+  if (view === 'dashboard') renderDashboard()
+  else if (view === 'files') renderFiles()
+  else if (view === 'newfile') renderNewFile()
+  else if (view === 'audit') renderAudit()
+  else if (view === 'staff') renderStaff()
+}
+
+// ═══════════════════════════════════════════
+// CHECKLISTS DATA
+// ═══════════════════════════════════════════
+const CHECKLISTS = {
+  FAMILY_SEP: [
+    { stage:1, title:'Stage 1 — Prospect intake & consultation', items:[
+      {key:'log_clio',label:'Log caller in Clio Grow — name, phone, email, matter type',clio:'Clio Grow → New lead'},
+      {key:'conflict_check',label:'Preliminary conflict check in Clio',flag:'If conflict — do not proceed. Log outcome.'},
+      {key:'consult_fee',label:'Explain consultation fee — $150 + HST, paid in advance'},
+      {key:'limited_retainer',label:'Issue limited retainer for consultation — e-signature via Clio'},
+      {key:'payment_confirmed',label:'Confirm payment — upload proof to Clio',clio:'Clio → Trust → Record receipt'},
+      {key:'calendar_booked',label:'Book consultation in Google Calendar'},
+      {key:'consult_notes',label:'Log consultation notes in Clio Grow',clio:'Clio Grow → Add note'},
+      {key:'followup',label:'Follow up within 2 business days — set Google Calendar tickler'},
+    ]},
+    { stage:2, title:'Stage 2 — Retainer, compliance & file opening', items:[
+      {key:'confirm_scope',label:'Confirm matter type with lawyer — scope and rate authorization',note:'Do not create matter in Clio until confirmed'},
+      {key:'draft_retainer',label:'Draft retainer agreement — scope, hourly rate, retainer amount, billing cycle'},
+      {key:'send_retainer',label:'Send retainer via Clio for e-signature',clio:'Clio → Documents → Send for signature'},
+      {key:'retainer_deposit',label:'Collect retainer deposit — upload trust receipt to Clio',note:'Do not commence work until funds received'},
+      {key:'client_id',label:'Verify client identity — two pieces government-issued ID',note:'Upload to Clio. LSO By-Law 9.',clio:'Clio → Client → Documents'},
+      {key:'kyc',label:'Complete KYC form — occupation, source of funds',flag:'Source of funds required if over $10,000 — FINTRAC'},
+      {key:'conflict_full',label:'Full conflict of interest check — log result in Clio',flag:'If conflict — stop. Do not proceed without lawyer direction.'},
+      {key:'intake_form',label:'Send client intake form — collect all personal data'},
+      {key:'lawpro',label:'Confirm LawPRO coverage is current'},
+      {key:'open_clio',label:'Open matter in Clio — assign matter number, practice area, lawyer',clio:'Clio → New matter'},
+      {key:'open_cosmolex',label:'Open file in Cosmolex — match matter number exactly'},
+      {key:'set_deadline',label:'Set deadline in Clio — max 30 days. Set 14-day and 7-day Google Calendar ticklers.'},
+    ]},
+    { stage:3, title:'Stage 3 — Matter assessment & documents', items:[
+      {key:'dos_dom',label:'Confirm date of marriage / date of separation — record in Clio notes'},
+      {key:'children',label:'Confirm whether children involved — names, ages, living arrangements'},
+      {key:'assets',label:'Confirm whether assets / debts involved — property, vehicles, pensions'},
+      {key:'opposing_rep',label:'Confirm status of opposing party — do they have legal representation?',flag:'If opposing party is unrepresented — flag immediately to lawyer'},
+      {key:'marriage_cert',label:'Request marriage certificate'},
+      {key:'tax_returns',label:'Request 3 years income tax returns and NOAs — both parties',note:'Set 7-day follow-up tickler if not received'},
+      {key:'paystubs',label:'Request most recent pay stubs — both parties'},
+      {key:'property_docs',label:'Request property documents — mortgage, title, appraisals'},
+      {key:'prior_orders',label:'Request existing court orders or prior agreements'},
+    ]},
+    { stage:4, title:'Stage 4A — Separation agreement drafting', items:[
+      {key:'confirm_issues',label:'Confirm all issues — property, support, custody, parenting plan'},
+      {key:'ila_confirm',label:'Confirm both parties understand ILA is strongly recommended',flag:'If opposing party unrepresented — flag to lawyer immediately'},
+      {key:'mediation_ask',label:'Ask client if they wish to explore mediation or collaborative law first',note:'HKS Law does not provide these — refer out if requested. Document response.'},
+      {key:'financial_disclosure',label:'Prepare Financial Disclosure Summary — net family property per Family Law Act'},
+      {key:'draft_agreement',label:'Draft separation agreement — circulate to client for instructions'},
+      {key:'client_instructions',label:'Receive client instructions — document all changes in Clio notes',clio:'Clio → Matter → Add note'},
+      {key:'send_opposing',label:'Send draft to opposing party / counsel — 7-day response deadline',note:'Set Google Calendar tickler. Follow up if no response in 7 days.'},
+      {key:'finalize_sign',label:'Finalize agreement — both parties sign before independent witnesses'},
+      {key:'upload_executed',label:'Upload fully executed agreement to Clio',clio:'Clio → Documents → Upload'},
+    ]},
+    { stage:5, title:'Stage 5 — Billing & file management', items:[
+      {key:'billable_hours',label:'Track all billable hours in Clio — entered same day',flag:'Unbilled time = revenue loss. No exceptions.',clio:'Clio → Time → Add entry'},
+      {key:'monthly_invoice',label:'Generate monthly invoice in Cosmolex — last business day of each month'},
+      {key:'send_invoice',label:'Send invoice to client via Clio',clio:'Clio → Bills → Send'},
+      {key:'payment_received',label:'Confirm payment — upload proof to Clio',note:'Trust draws require lawyer authorization'},
+      {key:'retainer_low',label:'If retainer running low — advise client and request top-up',flag:'Do not continue working with zero or negative retainer balance'},
+      {key:'weekly_review',label:'Review all open files weekly — confirm activity or tickler set'},
+      {key:'stall_escalate',label:'Any file with no activity 7 days and no hold — escalate to lawyer'},
+    ]},
+    { stage:6, title:'Stage 6 — File closing & audit trail', items:[
+      {key:'lawyer_signoff',label:'Confirm all legal work complete — lawyer sign-off required'},
+      {key:'docs_uploaded',label:'All documents uploaded to Clio',clio:'Clio → Documents → Verify all uploaded'},
+      {key:'final_invoice',label:'Final invoice generated in Cosmolex — all hours billed'},
+      {key:'trust_zero',label:'Trust account balance confirmed at zero'},
+      {key:'closing_report',label:'Draft closing report — email to client'},
+      {key:'generate_audit',label:'Generate audit trail PDF from this system'},
+      {key:'upload_audit',label:'Upload audit trail PDF to Clio — label: File Audit Trail — [Matter Number]',clio:'Clio → Documents → Upload'},
+      {key:'print_audit',label:'Print physical copy of audit trail for physical file'},
+      {key:'close_clio',label:'Mark matter Closed in Clio',clio:'Clio → Matter → Status → Closed'},
+      {key:'close_cosmolex',label:'Mark file Closed in Cosmolex'},
+      {key:'retention_note',label:'Note retention date — 10 years minimum per Law Society of Ontario',note:'Do not destroy without lawyer authorization and LSO destruction procedures'},
+    ]},
+  ],
+  REALESTATE_BUYER: [
+    { stage:1, title:'Stage 1 — Prospect intake & consultation', items:[
+      {key:'log_clio',label:'Log caller in Clio Grow',clio:'Clio Grow → New lead'},
+      {key:'conflict_check',label:'Preliminary conflict check',flag:'If conflict — do not proceed.'},
+      {key:'consult_fee',label:'Consultation fee — $150 + HST, paid before booking'},
+      {key:'limited_retainer',label:'Issue limited retainer for consultation'},
+      {key:'payment_confirmed',label:'Confirm payment — upload proof to Clio'},
+      {key:'calendar_booked',label:'Book consultation in Google Calendar'},
+      {key:'followup',label:'Follow up within 2 business days'},
+    ]},
+    { stage:2, title:'Stage 2 — Retainer, compliance & file opening', items:[
+      {key:'confirm_scope',label:'Confirm matter with lawyer — scope and rate authorization'},
+      {key:'draft_retainer',label:'Draft retainer agreement'},
+      {key:'send_retainer',label:'Send retainer via Clio for e-signature'},
+      {key:'retainer_deposit',label:'Collect retainer — upload trust receipt to Clio',note:'Do not commence work until funds received'},
+      {key:'client_id',label:'Verify client identity — two pieces ID. Upload to Clio.',note:'LSO By-Law 9'},
+      {key:'kyc',label:'Complete KYC — occupation, source of funds',flag:'Source of funds required — FINTRAC. Document origin of all purchase funds.'},
+      {key:'conflict_full',label:'Full conflict check — log in Clio'},
+      {key:'open_clio',label:'Open matter in Clio',clio:'Clio → New matter'},
+      {key:'open_cosmolex',label:'Open file in Cosmolex — match matter number'},
+      {key:'set_deadline',label:'Set closing date in Clio — set 14-day and 7-day Google Calendar ticklers'},
+    ]},
+    { stage:3, title:'Stage 3 — Buyer due diligence', items:[
+      {key:'aor',label:'Obtain Agreement of Purchase and Sale — upload to Clio'},
+      {key:'conditions',label:'Calendar all condition deadlines — financing, inspection, others'},
+      {key:'title_search',label:'Order and review title search — flag any encumbrances'},
+      {key:'mortgage_instructions',label:'Receive mortgage instructions from lender',note:'Private mortgage — obtain and review private mortgage terms'},
+      {key:'fire_insurance',label:'Confirm fire insurance in place — certificate before closing'},
+      {key:'condo_status',label:'If condominium — order Status Certificate. Note 10-day review period.'},
+      {key:'tax_certs',label:'Obtain tax certificates — confirm no arrears'},
+      {key:'statement_adjust',label:'Prepare Statement of Adjustments — review with client'},
+      {key:'closing_funds',label:'Confirm closing funds required — provide breakdown to client in writing'},
+      {key:'source_funds',label:'Obtain source of funds documentation for down payment',flag:'FINTRAC — must document origin of all purchase funds'},
+    ]},
+    { stage:4, title:'Stage 4 — Closing day', items:[
+      {key:'funds_received',label:'Confirm closing funds received in trust',flag:'Do not close without funds in trust',clio:'Clio → Trust → Record receipt'},
+      {key:'mortgage_funds',label:'Confirm mortgage funds received from lender'},
+      {key:'docs_signed',label:'All transfer and mortgage documents signed by client'},
+      {key:'title_transfer',label:'Register title transfer with Land Registry'},
+      {key:'mortgage_registered',label:'Register mortgage'},
+      {key:'keys_released',label:'Keys / possession released to client'},
+      {key:'funds_disbursed',label:'Disburse all funds — vendor, lender, adjustments, legal fees'},
+      {key:'report_lender',label:'Report to lender — send mortgage report'},
+      {key:'report_client',label:'Send closing report and registered documents to client'},
+    ]},
+    { stage:5, title:'Stage 5 — Billing', items:[
+      {key:'billable_hours',label:'Track all billable hours in Clio same day',flag:'Unbilled time = revenue loss.',clio:'Clio → Time → Add entry'},
+      {key:'invoice',label:'Generate invoice in Cosmolex upon file completion'},
+      {key:'payment_received',label:'Confirm payment — upload proof to Clio'},
+      {key:'retainer_low',label:'If retainer running low — advise client',flag:'Do not continue with zero or negative retainer balance'},
+    ]},
+    { stage:6, title:'Stage 6 — File closing & audit trail', items:[
+      {key:'lawyer_signoff',label:'All legal work complete — lawyer sign-off'},
+      {key:'title_registered',label:'Title transfer registered with Land Registry'},
+      {key:'trust_zero',label:'Trust account reconciled — balance zero'},
+      {key:'docs_uploaded',label:'All documents uploaded to Clio'},
+      {key:'final_invoice',label:'Final invoice generated — all hours billed'},
+      {key:'closing_report',label:'Closing report emailed to client'},
+      {key:'generate_audit',label:'Generate audit trail PDF from this system'},
+      {key:'upload_audit',label:'Upload audit trail PDF to Clio'},
+      {key:'close_clio',label:'Mark matter Closed in Clio'},
+      {key:'close_cosmolex',label:'Mark file Closed in Cosmolex'},
+      {key:'retention_note',label:'Retention date noted — 10 years per LSO'},
+    ]},
+  ],
+  IMMIGRATION_PR: [
+    { stage:1, title:'Stage 1 — Prospect intake & consultation', items:[
+      {key:'log_clio',label:'Log caller in Clio Grow — immigration matter type',clio:'Clio Grow → New lead'},
+      {key:'conflict_check',label:'Preliminary conflict check'},
+      {key:'consult_fee',label:'Consultation fee — $150 + HST, paid before booking'},
+      {key:'limited_retainer',label:'Issue limited retainer for consultation'},
+      {key:'payment_confirmed',label:'Confirm payment — upload proof to Clio'},
+      {key:'calendar_booked',label:'Book consultation in Google Calendar'},
+      {key:'followup',label:'Follow up within 2 business days'},
+    ]},
+    { stage:2, title:'Stage 2 — Retainer, compliance & file opening', items:[
+      {key:'confirm_scope',label:'Confirm immigration matter type with lawyer'},
+      {key:'draft_retainer',label:'Draft retainer — scope, flat fee or hourly, timeline'},
+      {key:'send_retainer',label:'Send retainer via Clio for e-signature'},
+      {key:'retainer_deposit',label:'Collect retainer — upload trust receipt to Clio'},
+      {key:'client_id',label:'Verify client identity — passport preferred. Upload to Clio.',note:'LSO By-Law 9'},
+      {key:'kyc',label:'Complete KYC — occupation, source of funds, travel history',flag:'Source of funds required if over $10,000 — FINTRAC'},
+      {key:'conflict_full',label:'Full conflict check — log in Clio'},
+      {key:'open_clio',label:'Open matter in Clio',clio:'Clio → New matter'},
+      {key:'open_cosmolex',label:'Open file in Cosmolex'},
+      {key:'immigration_history',label:'Obtain full immigration history — prior applications, refusals, status history'},
+      {key:'criminal_history',label:'Criminal record declaration — inadmissibility concerns flag to lawyer immediately'},
+    ]},
+    { stage:3, title:'Stage 3 — PR application preparation', items:[
+      {key:'sponsor_eligible',label:'Confirm sponsor eligibility — income, NOA, T4, employment letter'},
+      {key:'relationship_docs',label:'Collect proof of genuine relationship — photos, communication, shared finances, travel'},
+      {key:'principal_docs',label:'Principal applicant documents — passport, birth cert, police certificates all countries'},
+      {key:'marriage_cert',label:'Marriage certificate — apostille or certified translation if foreign language'},
+      {key:'children_docs',label:'If children — birth certificates, custody orders if applicable'},
+      {key:'medical_exams',label:'Confirm medical exam — advise client to book designated physician'},
+      {key:'biometrics',label:'Advise client on biometrics requirement'},
+      {key:'imm_forms',label:'Complete all required IRCC forms — IMM 1344, IMM 5532, IMM 0008, others'},
+      {key:'fees_paid',label:'Government processing fees paid — upload receipts to Clio'},
+      {key:'review_package',label:'Lawyer reviews complete application before submission'},
+      {key:'submit_application',label:'Submit to IRCC — retain confirmation of submission'},
+      {key:'tickler',label:'Set Google Calendar tickler for processing time check — typically 12 months'},
+    ]},
+    { stage:4, title:'Stage 4 — Post-submission monitoring', items:[
+      {key:'ircc_ack',label:'Obtain IRCC acknowledgment of receipt — upload to Clio'},
+      {key:'uci_number',label:'Record UCI number in Clio file notes'},
+      {key:'monthly_status',label:'Check IRCC processing status monthly — log update in Clio',note:'Do not wait for client to ask. Be proactive.'},
+      {key:'additional_docs',label:'Respond to any IRCC requests for additional documents within deadline',flag:'Missing IRCC deadlines can result in refusal. Escalate to lawyer immediately.'},
+      {key:'ppr_received',label:'Passport Request received — advise client immediately, coordinate passport submission'},
+      {key:'pr_confirmation',label:'COPR received — advise client on landing requirements'},
+    ]},
+    { stage:5, title:'Stage 5 — Billing', items:[
+      {key:'billable_hours',label:'Track all billable hours in Clio same day',clio:'Clio → Time → Add entry'},
+      {key:'invoice',label:'Invoice per agreed schedule'},
+      {key:'payment_confirmed',label:'Confirm payment — upload proof to Clio'},
+      {key:'gov_fees_disbursed',label:'Confirm all government fees disbursed from trust'},
+    ]},
+    { stage:6, title:'Stage 6 — File closing & audit trail', items:[
+      {key:'matter_resolved',label:'PR granted, visa issued, or matter concluded — note outcome'},
+      {key:'docs_uploaded',label:'All documents uploaded to Clio'},
+      {key:'final_invoice',label:'Final invoice generated — all hours billed'},
+      {key:'trust_zero',label:'Trust account at zero'},
+      {key:'closing_report',label:'Closing report emailed to client'},
+      {key:'generate_audit',label:'Generate audit trail PDF from this system'},
+      {key:'upload_audit',label:'Upload audit trail PDF to Clio'},
+      {key:'close_clio',label:'Mark matter Closed in Clio'},
+      {key:'close_cosmolex',label:'Mark file Closed in Cosmolex'},
+      {key:'retention_note',label:'Retention date noted — 10 years per LSO'},
+    ]},
+  ],
+  CRIMINAL: [
+    { stage:1, title:'Stage 1 — Prospect intake & consultation', items:[
+      {key:'log_clio',label:'Log caller in Clio Grow — charges, court dates',note:'Criminal matters are time-sensitive. Confirm court dates immediately.',clio:'Clio Grow → New lead'},
+      {key:'conflict_check',label:'Preliminary conflict check — co-accused and witnesses',flag:'Criminal conflict checks require checking co-accused. Do not skip.'},
+      {key:'court_dates',label:'Obtain ALL existing court dates — enter in Google Calendar immediately',flag:'Missing a court date is a serious professional failure. Enter all dates first.'},
+      {key:'consult_fee',label:'Consultation fee — $150 + HST, paid before booking'},
+      {key:'limited_retainer',label:'Issue limited retainer for consultation'},
+      {key:'payment_confirmed',label:'Confirm payment — upload proof to Clio'},
+      {key:'calendar_booked',label:'Book consultation in Google Calendar'},
+      {key:'followup',label:'Follow up within 1 business day — criminal matters are urgent'},
+    ]},
+    { stage:2, title:'Stage 2 — Retainer, compliance & file opening', items:[
+      {key:'confirm_scope',label:'Confirm charges and scope with lawyer — Legal Aid eligibility check'},
+      {key:'draft_retainer',label:'Draft retainer — scope, flat fee or hourly, Legal Aid assignment if applicable'},
+      {key:'send_retainer',label:'Send retainer via Clio for e-signature'},
+      {key:'retainer_deposit',label:'Collect retainer — upload trust receipt',note:'Do not appear in court without funds in trust'},
+      {key:'client_id',label:'Verify client identity — government-issued ID. Upload to Clio.'},
+      {key:'kyc',label:'Complete KYC — occupation, source of funds'},
+      {key:'conflict_full',label:'Full conflict check — co-accused, witnesses, complainants. Log in Clio.'},
+      {key:'open_clio',label:'Open matter in Clio',clio:'Clio → New matter'},
+      {key:'open_cosmolex',label:'Open file in Cosmolex'},
+      {key:'all_court_dates',label:'Enter ALL court dates in Clio and Google Calendar',flag:'Every court date must be in both systems. Verify with client and Crown disclosure.'},
+    ]},
+    { stage:3, title:'Stage 3 — Crown disclosure & assessment', items:[
+      {key:'request_disclosure',label:'Request Crown disclosure — submit in writing. Upload confirmation to Clio.'},
+      {key:'disclosure_received',label:'Confirm disclosure received — upload all materials to Clio',note:'Set 7-day follow-up tickler if not received.'},
+      {key:'review_disclosure',label:'Lawyer reviews disclosure — notes re: strengths, weaknesses, defences'},
+      {key:'bail_review',label:'If client in custody — assess bail review. Calendar bail hearing.'},
+      {key:'client_instructions',label:'Take detailed client instructions — account of events, witnesses, alibi'},
+      {key:'witnesses',label:'Identify defence witnesses — obtain contact information'},
+      {key:'charter_issues',label:'Assess Charter issues — search and seizure, right to counsel. Flag to lawyer.'},
+    ]},
+    { stage:4, title:'Stage 4 — Resolution or trial preparation', items:[
+      {key:'resolution_discuss',label:'Discuss resolution options with client — guilty plea, diversion, withdrawal'},
+      {key:'crown_negotiation',label:'Crown negotiations — log all communications in Clio'},
+      {key:'plea_offer',label:'If plea offer received — advise client in writing. Document instructions clearly.'},
+      {key:'election',label:'Confirm mode of election — Ontario Court of Justice, Superior Court, jury trial'},
+      {key:'trial_prep',label:'Trial preparation — witness list, exhibits, legal arguments'},
+      {key:'all_deadlines',label:'All pre-trial deadlines in Clio and Google Calendar — applications, notices, expert reports'},
+      {key:'client_prep',label:'Prepare client for trial — testifying decision documented'},
+    ]},
+    { stage:5, title:'Stage 5 — Billing', items:[
+      {key:'billable_hours',label:'Track all billable hours in Clio same day',flag:'Court appearances are billable. Enter immediately after court.',clio:'Clio → Time → Add entry'},
+      {key:'invoice',label:'Invoice monthly or per milestone'},
+      {key:'payment_confirmed',label:'Confirm payment — upload proof to Clio'},
+      {key:'retainer_low',label:'If retainer running low before trial — advise client immediately',flag:'Do not proceed to trial without adequate funds in trust'},
+    ]},
+    { stage:6, title:'Stage 6 — File closing & audit trail', items:[
+      {key:'outcome_noted',label:'Document outcome — acquittal, conviction, stay, withdrawal. Note sentence if applicable.'},
+      {key:'appeal_deadline',label:'Advise client of appeal deadline — 30 days from sentencing. Document on file.'},
+      {key:'probation',label:'If probation — provide client written copy of all conditions'},
+      {key:'docs_uploaded',label:'All documents uploaded to Clio'},
+      {key:'final_invoice',label:'Final invoice generated'},
+      {key:'trust_zero',label:'Trust account at zero'},
+      {key:'closing_report',label:'Closing report emailed to client'},
+      {key:'generate_audit',label:'Generate audit trail PDF from this system'},
+      {key:'upload_audit',label:'Upload audit trail PDF to Clio'},
+      {key:'close_clio',label:'Mark matter Closed in Clio'},
+      {key:'close_cosmolex',label:'Mark file Closed in Cosmolex'},
+      {key:'retention_note',label:'Retention date — 10 years per LSO'},
+    ]},
+  ],
+  CIVIL: [
+    { stage:1, title:'Stage 1 — Prospect intake & consultation', items:[
+      {key:'log_clio',label:'Log caller in Clio Grow — nature of dispute',clio:'Clio Grow → New lead'},
+      {key:'conflict_check',label:'Preliminary conflict check — opposing party and insurer',flag:'If conflict — do not proceed.'},
+      {key:'limitation',label:'Immediately assess limitation period — 2 years general in Ontario',flag:'If limitation period expired or imminent — escalate to lawyer immediately before anything else'},
+      {key:'consult_fee',label:'Consultation fee — $150 + HST, paid before booking'},
+      {key:'limited_retainer',label:'Issue limited retainer for consultation'},
+      {key:'payment_confirmed',label:'Confirm payment — upload proof to Clio'},
+      {key:'calendar_booked',label:'Book consultation in Google Calendar'},
+      {key:'followup',label:'Follow up within 2 business days'},
+    ]},
+    { stage:2, title:'Stage 2 — Retainer, compliance & file opening', items:[
+      {key:'confirm_scope',label:'Confirm matter type with lawyer — home insurance, title insurance, E&O, general civil'},
+      {key:'draft_retainer',label:'Draft retainer — contingency or hourly, billing cycle'},
+      {key:'send_retainer',label:'Send retainer via Clio for e-signature'},
+      {key:'retainer_deposit',label:'Collect retainer — upload trust receipt'},
+      {key:'client_id',label:'Verify client identity — two pieces ID. Upload to Clio.'},
+      {key:'kyc',label:'Complete KYC — occupation, source of funds'},
+      {key:'conflict_full',label:'Full conflict check — opposing party, insurer, witnesses. Log in Clio.'},
+      {key:'open_clio',label:'Open matter in Clio',clio:'Clio → New matter'},
+      {key:'open_cosmolex',label:'Open file in Cosmolex'},
+      {key:'limitation_calendar',label:'Calendar limitation period deadline in Clio and Google Calendar',flag:'This is the most critical date on the file. Must be in both systems.'},
+      {key:'monthly_deadline',label:'Set 30-day internal deadline — renew each month until resolved'},
+    ]},
+    { stage:3, title:'Stage 3 — Pre-litigation assessment & demand', items:[
+      {key:'collect_docs',label:'Collect all documents — policy, correspondence, invoices, photos, reports, contracts'},
+      {key:'insurance_policy',label:'Obtain and review insurance policy — coverage, exclusions, conditions'},
+      {key:'insurer_correspondence',label:'All insurer correspondence — denials, adjusters, proofs of loss'},
+      {key:'damages',label:'Assess quantum of damages — estimates, appraisals, expert opinions'},
+      {key:'demand_letter',label:'Draft and send demand letter — 30-day response deadline. Upload copy to Clio.'},
+      {key:'demand_tickler',label:'Set Google Calendar tickler for demand response — follow up if no response',note:'Do not wait for opposing party to contact us'},
+      {key:'negotiation',label:'Log all settlement negotiations in Clio notes'},
+    ]},
+    { stage:4, title:'Stage 4 — Litigation if required', items:[
+      {key:'court_selection',label:'Confirm court — Small Claims (under $35,000) or Superior Court of Justice'},
+      {key:'statement_claim',label:'Draft Statement of Claim — lawyer review required before issuing'},
+      {key:'issue_claim',label:'Issue Statement of Claim — upload to Clio. Note issuance date.',note:'Set tickler — defendant has 20 days to respond'},
+      {key:'serve_claim',label:'Serve Statement of Claim — note service date'},
+      {key:'discoveries',label:'Schedule examinations for discovery — calendar in Clio and Google Calendar'},
+      {key:'mediation',label:'Mandatory mediation if applicable — calendar date, prepare brief'},
+      {key:'pre_trial',label:'Pre-trial conference — calendar date, prepare memorandum'},
+      {key:'all_deadlines',label:'All Rules of Civil Procedure deadlines in Clio and Google Calendar',flag:'Missing a procedural deadline can result in dismissal. Escalate to lawyer immediately if at risk.'},
+    ]},
+    { stage:5, title:'Stage 5 — Billing', items:[
+      {key:'billable_hours',label:'Track all billable hours in Clio same day',flag:'Court and discovery appearances are billable. Enter immediately.',clio:'Clio → Time → Add entry'},
+      {key:'invoice',label:'Invoice monthly — civil files can run long. Do not let billing lag.'},
+      {key:'payment_confirmed',label:'Confirm payment — upload proof to Clio'},
+      {key:'retainer_low',label:'If retainer running low — advise client and request top-up',flag:'Do not proceed to trial without adequate funds in trust'},
+    ]},
+    { stage:6, title:'Stage 6 — File closing & audit trail', items:[
+      {key:'outcome_noted',label:'Document outcome — settlement amount, judgment, dismissal. Upload order to Clio.'},
+      {key:'costs',label:'Costs assessed and collected if applicable'},
+      {key:'enforcement',label:'If judgment obtained — advise client on enforcement options'},
+      {key:'docs_uploaded',label:'All documents uploaded to Clio'},
+      {key:'final_invoice',label:'Final invoice generated'},
+      {key:'trust_zero',label:'Trust account at zero'},
+      {key:'closing_report',label:'Closing report emailed to client'},
+      {key:'generate_audit',label:'Generate audit trail PDF from this system'},
+      {key:'upload_audit',label:'Upload audit trail PDF to Clio'},
+      {key:'close_clio',label:'Mark matter Closed in Clio'},
+      {key:'close_cosmolex',label:'Mark file Closed in Cosmolex'},
+      {key:'retention_note',label:'Retention date — 10 years per LSO'},
+    ]},
+  ],
+}
+
+const MATTER_TYPES = {
+  'Separation agreement':'FAMILY_SEP',
+  'Uncontested divorce':'FAMILY_SEP',
+  'Contested divorce':'FAMILY_SEP',
+  'Custody / parenting':'FAMILY_SEP',
+  'Child / spousal support':'FAMILY_SEP',
+  'Real estate — buyer':'REALESTATE_BUYER',
+  'Real estate — seller':'REALESTATE_BUYER',
+  'Real estate — refinance':'REALESTATE_BUYER',
+  'PR sponsorship':'IMMIGRATION_PR',
+  'Work permit':'IMMIGRATION_PR',
+  'Study permit':'IMMIGRATION_PR',
+  'Criminal — summary':'CRIMINAL',
+  'Criminal — indictable':'CRIMINAL',
+  'Civil — insurance dispute':'CIVIL',
+  'Civil — general litigation':'CIVIL',
+}
+
+const PRACTICE_AREAS = {
+  'Separation agreement':'Family','Uncontested divorce':'Family','Contested divorce':'Family',
+  'Custody / parenting':'Family','Child / spousal support':'Family',
+  'Real estate — buyer':'Real estate','Real estate — seller':'Real estate','Real estate — refinance':'Real estate',
+  'PR sponsorship':'Immigration','Work permit':'Immigration','Study permit':'Immigration',
+  'Criminal — summary':'Criminal','Criminal — indictable':'Criminal',
+  'Civil — insurance dispute':'Civil','Civil — general litigation':'Civil',
+}
+
+// ═══════════════════════════════════════════
+// DATABASE HELPERS
+// ═══════════════════════════════════════════
+async function getFiles(ownerOnly = false) {
+  let query = db.from('files').select('*').eq('status','active').order('deadline',{ascending:true})
+  if (!currentUser.isOwner) query = query.eq('assigned_to_email', currentUser.email)
+  const { data } = await query
+  return data || []
+}
+
+async function getFileTicks(fileId) {
+  const { data } = await db.from('checklist_ticks').select('*').eq('file_id', fileId)
+  return data || []
+}
+
+async function saveTick(fileId, stage, itemKey, completed) {
+  await db.from('checklist_ticks').upsert({
+    file_id: fileId,
+    stage,
+    item_key: itemKey,
+    completed,
+    completed_at: completed ? new Date().toISOString() : null,
+    completed_by_email: currentUser.email,
+    completed_by_name: currentUser.name,
+  }, { onConflict: 'file_id,stage,item_key' })
+  await db.from('files').update({ last_activity_at: new Date().toISOString() }).eq('id', fileId)
+}
+
+async function createFile(data) {
+  const { data: file, error } = await db.from('files').insert({
+    ...data,
+    created_by_email: currentUser.email,
+    status: 'active',
+    last_activity_at: new Date().toISOString(),
+  }).select().single()
+  return { file, error }
+}
+
+async function logHold(fileId, reason) {
+  await db.from('holds').insert({
+    file_id: fileId,
+    reason,
+    logged_by_email: currentUser.email,
+    logged_by_name: currentUser.name,
+    approved: false,
+    expires_at: new Date(Date.now() + 30*24*60*60*1000).toISOString(),
+  })
+  await db.from('files').update({ last_activity_at: new Date().toISOString() }).eq('id', fileId)
+}
+
+async function getHolds(fileId) {
+  const { data } = await db.from('holds').select('*').eq('file_id', fileId).eq('approved', false)
+  return data || []
+}
+
+async function approveHold(holdId) {
+  await db.from('holds').update({ approved: true, approved_at: new Date().toISOString() }).eq('id', holdId)
+}
+
+// ═══════════════════════════════════════════
+// VIEWS
+// ═══════════════════════════════════════════
+function daysDiff(dateStr) {
+  return Math.ceil((new Date(dateStr) - new Date()) / (1000*60*60*24))
+}
+
+function pct(ticks) {
+  if (!ticks || ticks.length === 0) return 0
+  return Math.round(ticks.filter(t=>t.completed).length / ticks.length * 100)
+}
+
+function progClass(p) {
+  return p >= 75 ? 'prog-green' : p >= 40 ? 'prog-amber' : 'prog-red'
+}
+
+function deadlineClass(days) {
+  return days <= 3 ? 'deadline-urgent' : days <= 10 ? 'deadline-soon' : 'deadline-ok'
+}
+
+function badgeClass(area) {
+  const m = {'Family':'family','Real estate':'realestate','Immigration':'immigration','Criminal':'criminal','Civil':'civil'}
+  return 'badge-' + (m[area] || 'family')
+}
+
+async function renderDashboard() {
+  const files = await getFiles()
+  const allTicks = await Promise.all(files.map(f => getFileTicks(f.id)))
+  const allHolds = await Promise.all(files.map(f => getHolds(f.id)))
+
+  const stalled = files.filter((f,i) => {
+    const days = Math.ceil((new Date() - new Date(f.last_activity_at)) / (1000*60*60*24))
+    return days >= 7 && allHolds[i].length === 0
+  })
+
+  const urgent = files.filter(f => daysDiff(f.deadline) <= 3)
+  const tickPcts = allTicks.map(t => pct(t))
+  const avgCompliance = tickPcts.length ? Math.round(tickPcts.reduce((a,b)=>a+b,0)/tickPcts.length) : 0
+
+  let html = `
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-label">Active files</div><div class="metric-val">${files.length}</div><div class="metric-sub">across all practice areas</div></div>
+      <div class="metric"><div class="metric-label">Stalled files</div><div class="metric-val ${stalled.length>0?'val-red':''}">${stalled.length}</div><div class="metric-sub">no activity 7+ days</div></div>
+      <div class="metric"><div class="metric-label">Urgent deadlines</div><div class="metric-val ${urgent.length>0?'val-amber':''}">${urgent.length}</div><div class="metric-sub">within 3 days</div></div>
+      <div class="metric"><div class="metric-label">Compliance rate</div><div class="metric-val ${avgCompliance<50?'val-red':avgCompliance<75?'val-amber':'val-green'}">${avgCompliance}%</div><div class="metric-sub">checklists completed</div></div>
+    </div>
+    <div class="two-col">
+      <div>
+        <div class="panel">
+          <div class="panel-head">Active files — by deadline <span class="panel-action" onclick="showView('files',null)">View all</span></div>`
+
+  if (files.length === 0) {
+    html += '<div style="padding:20px;text-align:center;color:#888;font-size:12px">No active files. <span style="color:#534AB7;cursor:pointer" onclick="showView(\'newfile\',null)">Create your first file →</span></div>'
+  } else {
+    files.slice(0,8).forEach((f,i) => {
+      const p = tickPcts[i]
+      const days = daysDiff(f.deadline)
+      html += `
+        <div class="file-row" onclick="openFile('${f.id}')">
+          <div><div class="file-name">${f.client_name}</div><div class="file-matter">${f.matter_type}</div></div>
+          <span class="badge ${badgeClass(f.practice_area)}">${f.practice_area}</span>
+          <span class="${deadlineClass(days)}">${days}d</span>
+          <div><div class="prog-wrap"><div class="prog-fill ${progClass(p)}" style="width:${p}%"></div></div><div style="font-size:10px;color:#888;margin-top:2px">${p}%</div></div>
+        </div>`
+    })
+  }
+
+  html += `</div></div>
+      <div>
+        <div class="panel">
+          <div class="panel-head">Stalled — action required</div>`
+
+  if (stalled.length === 0) {
+    html += '<div style="padding:14px;font-size:12px;color:#27ae60">No stalled files. Good work.</div>'
+  } else {
+    stalled.forEach(f => {
+      const days = Math.ceil((new Date() - new Date(f.last_activity_at)) / (1000*60*60*24))
+      html += `<div class="alert-row" onclick="openFile('${f.id}')" style="cursor:pointer">
+        <div class="alert-dot alert-dot-red"></div>
+        <div><div class="alert-text">${f.client_name}</div><div class="alert-sub">${f.matter_type} · No activity ${days} days</div></div>
+      </div>`
+    })
+  }
+
+  html += `</div>`
+
+  if (currentUser.isOwner) {
+    html += `
+        <div class="panel" style="margin-top:14px">
+          <div class="panel-head">Quick actions</div>
+          <div style="padding:12px;display:flex;flex-direction:column;gap:8px">
+            <button class="btn btn-primary" onclick="showView('newfile',null)" style="width:100%">+ Open new file</button>
+            <button class="btn" onclick="showView('audit',null)" style="width:100%">View audit report</button>
+          </div>
+        </div>`
+  }
+
+  html += `</div></div>`
+
+  document.getElementById('main-content').innerHTML = html
+}
+
+async function renderFiles() {
+  const files = await getFiles()
+  const allTicks = await Promise.all(files.map(f => getFileTicks(f.id)))
+
+  let html = `
+    <div class="panel">
+      <div class="panel-head">
+        All active files
+        ${currentUser.isOwner ? '<button class="btn btn-primary btn-sm" onclick="showView(\'newfile\',null)">+ New file</button>' : ''}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 80px 80px 70px 55px;gap:8px;padding:7px 14px;background:#f9f9f7;font-size:11px;color:#888;font-weight:500">
+        <span>Client / matter</span><span>Area</span><span>Assigned to</span><span>Deadline</span><span>Progress</span>
+      </div>`
+
+  if (files.length === 0) {
+    html += '<div style="padding:24px;text-align:center;color:#888;font-size:12px">No active files.</div>'
+  } else {
+    files.forEach((f,i) => {
+      const p = pct(allTicks[i])
+      const days = daysDiff(f.deadline)
+      html += `
+        <div style="display:grid;grid-template-columns:1fr 80px 80px 70px 55px;gap:8px;align-items:center;padding:9px 14px;border-top:1px solid #f0f0eb;cursor:pointer;transition:background 0.1s" onmouseover="this.style.background='#f9f9f7'" onmouseout="this.style.background=''" onclick="openFile('${f.id}')">
+          <div><div class="file-name">${f.client_name}</div><div class="file-matter">${f.matter_type} · ${f.matter_number}</div></div>
+          <span class="badge ${badgeClass(f.practice_area)}">${f.practice_area}</span>
+          <span style="font-size:11px;color:#666">${f.assigned_to_name || f.assigned_to_email}</span>
+          <span class="${deadlineClass(days)}">${new Date(f.deadline).toLocaleDateString('en-CA',{month:'short',day:'numeric'})}</span>
+          <div><div class="prog-wrap"><div class="prog-fill ${progClass(p)}" style="width:${p}%"></div></div></div>
+        </div>`
+    })
+  }
+
+  html += '</div>'
+  document.getElementById('main-content').innerHTML = html
+}
+
+function renderNewFile() {
+  const matterOptions = Object.keys(MATTER_TYPES).map(m => `<option value="${m}">${m}</option>`).join('')
+  const html = `
+    <div class="panel" style="max-width:600px">
+      <div class="panel-head">Open new file</div>
+      <div style="padding:20px">
+        <div class="form-group">
+          <label class="form-label">Client name *</label>
+          <input class="form-input" id="nf-client" placeholder="e.g. Smith v. Jones or Kumar Purchase" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Matter type *</label>
+          <select class="form-input" id="nf-matter">
+            <option value="">Select matter type...</option>
+            ${matterOptions}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Matter number *</label>
+          <input class="form-input" id="nf-number" placeholder="e.g. HKS-2026-0001" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Deadline *</label>
+          <input class="form-input" id="nf-deadline" type="date" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Assigned to (email)</label>
+          <select class="form-input" id="nf-assigned">
+            ${[...ALLOWED_EMAILS].filter(e=>!OWNER_EMAILS.includes(e)).map(e=>`<option value="${e}">${e}</option>`).join('')}
+            <option value="${currentUser.email}" ${currentUser.isOwner?'':'selected'}>${currentUser.email}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes (optional)</label>
+          <textarea class="form-input" id="nf-notes" rows="3" placeholder="Any initial notes about the matter..."></textarea>
+        </div>
+        <div id="nf-error" style="color:#c0392b;font-size:12px;margin-bottom:10px"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" onclick="submitNewFile()">Open file</button>
+          <button class="btn" onclick="showView('files',null)">Cancel</button>
+        </div>
+      </div>
+    </div>`
+  document.getElementById('main-content').innerHTML = html
+
+  // Set default deadline to 30 days from now
+  const d = new Date(); d.setDate(d.getDate()+30)
+  document.getElementById('nf-deadline').value = d.toISOString().split('T')[0]
+
+  // Auto-generate matter number
+  const num = 'HKS-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-4)
+  document.getElementById('nf-number').value = num
+}
+
+async function submitNewFile() {
+  const clientName = document.getElementById('nf-client').value.trim()
+  const matterType = document.getElementById('nf-matter').value
+  const matterNumber = document.getElementById('nf-number').value.trim()
+  const deadline = document.getElementById('nf-deadline').value
+  const assignedEmail = document.getElementById('nf-assigned').value
+  const notes = document.getElementById('nf-notes').value.trim()
+
+  if (!clientName || !matterType || !matterNumber || !deadline) {
+    document.getElementById('nf-error').textContent = 'Please fill in all required fields.'
+    return
+  }
+
+  const { file, error } = await createFile({
+    client_name: clientName,
+    matter_type: matterType,
+    matter_number: matterNumber,
+    practice_area: PRACTICE_AREAS[matterType],
+    deadline,
+    assigned_to_email: assignedEmail,
+    assigned_to_name: assignedEmail.split('@')[0],
+    notes,
+  })
+
+  if (error) {
+    document.getElementById('nf-error').textContent = 'Error: ' + error.message
+    return
+  }
+
+  openFile(file.id)
+}
+
+async function openFile(fileId) {
+  currentFileId = fileId
+  document.getElementById('topbar-title').textContent = 'File detail'
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
+
+  const { data: file } = await db.from('files').select('*').eq('id', fileId).single()
+  if (!file) return
+
+  const ticks = await getFileTicks(fileId)
+  const holds = await getHolds(fileId)
+  const checklistKey = MATTER_TYPES[file.matter_type] || 'FAMILY_SEP'
+  const stages = CHECKLISTS[checklistKey]
+  const totalItems = stages.reduce((s,st)=>s+st.items.length,0)
+  const doneItems = ticks.filter(t=>t.completed).length
+  const completion = totalItems > 0 ? Math.round(doneItems/totalItems*100) : 0
+  const days = daysDiff(file.deadline)
+
+  let html = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:16px;font-weight:500">${file.client_name}</div>
+        <div style="font-size:12px;color:#888;margin-top:2px">${file.matter_type} · ${file.matter_number} · Assigned: ${file.assigned_to_name || file.assigned_to_email}</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="showLogHold('${fileId}')">Log hold</button>
+        ${currentUser.isOwner ? `<button class="btn btn-sm" onclick="showHoldApprovals('${fileId}')">Review holds</button>` : ''}
+        <button class="btn btn-primary btn-sm" onclick="generateAuditPrint('${fileId}')">Print audit trail</button>
+        ${currentUser.isOwner && file.status !== 'closed' ? `<button class="btn btn-sm" style="color:#c0392b;border-color:#c0392b" onclick="closeFile('${fileId}')">Close file</button>` : ''}
+      </div>
+    </div>`
+
+  if (holds.length > 0) {
+    holds.forEach(h => {
+      html += `<div class="hold-banner">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#7a5a00" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3M8 11h.01"/></svg>
+        Active hold: ${h.reason} — logged ${new Date(h.created_at).toLocaleDateString('en-CA')}${currentUser.isOwner ? ` <span style="color:#534AB7;cursor:pointer;margin-left:8px" onclick="approveHoldUI('${h.id}','${fileId}')">Approve</span>` : ''}
+      </div>`
+    })
+  }
+
+  html += `<div class="detail-grid">
+    <div>
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab(this,'tab-checklist')">Checklist</div>
+        <div class="tab" onclick="switchTab(this,'tab-notes')">Notes</div>
+      </div>
+      <div id="tab-checklist" class="panel" style="border-top-left-radius:0;border-top-right-radius:0;border-top:none;margin-top:0">`
+
+  stages.forEach(stage => {
+    const stageTicks = ticks.filter(t=>t.stage===stage.stage)
+    const stageDone = stageTicks.filter(t=>t.completed).length
+    const stageTotal = stage.items.length
+    const stageComplete = stageDone === stageTotal
+    const stageStarted = stageDone > 0
+    const dotColor = stageComplete ? '#27ae60' : stageStarted ? '#e67e22' : '#ddd'
+
+    html += `
+      <div class="stage-block">
+        <div class="stage-head" onclick="toggleStage(this)">
+          <div class="stage-dot" style="background:${dotColor}"></div>
+          ${stage.title} · ${stageDone}/${stageTotal}
+          <span style="margin-left:auto;font-size:10px;color:#aaa">▾</span>
+        </div>
+        <div class="stage-items ${stage.stage===1||stageStarted?'open':''}">`
+
+    stage.items.forEach(item => {
+      const tick = ticks.find(t=>t.stage===stage.stage && t.item_key===item.key)
+      const done = tick?.completed || false
+      html += `
+        <div class="ck-item">
+          <div class="ck-box ${done?'done':''}" onclick="toggleTick('${fileId}',${stage.stage},'${item.key}',this)"></div>
+          <div class="ck-label">
+            ${item.label}
+            ${item.note?`<div class="ck-note">${item.note}</div>`:''}
+            ${item.flag?`<div class="ck-flag">⚑ ${item.flag}</div>`:''}
+            ${item.clio?`<div class="ck-clio">→ ${item.clio}</div>`:''}
+            ${done&&tick?.completed_by_name?`<div style="font-size:10px;color:#aaa;margin-top:2px">✓ ${tick.completed_by_name} · ${new Date(tick.completed_at).toLocaleDateString('en-CA')}</div>`:''}
+          </div>
+        </div>`
+    })
+
+    html += `</div></div>`
+  })
+
+  html += `</div>
+      <div id="tab-notes" class="panel" style="display:none;padding:14px">
+        <div style="font-size:12px;color:#888;margin-bottom:10px">File notes</div>
+        <textarea class="form-input" id="file-notes-input" rows="6" placeholder="Add notes about this file...">${file.notes || ''}</textarea>
+        <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="saveNotes('${fileId}')">Save notes</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="side-card">
+        <div class="side-card-head">Completion</div>
+        <div class="side-card-body">
+          <div class="side-stat-val" style="color:${completion>=75?'#27ae60':completion>=40?'#e67e22':'#c0392b'}">${completion}%</div>
+          <div class="prog-wrap" style="margin-top:8px;height:6px"><div class="prog-fill ${progClass(completion)}" style="width:${completion}%"></div></div>
+          <div class="side-stat-sub">${doneItems} of ${totalItems} items</div>
+        </div>
+      </div>
+      <div class="side-card">
+        <div class="side-card-head">Deadline</div>
+        <div class="side-card-body">
+          <div class="side-stat-val ${days<=3?'val-red':days<=10?'val-amber':''}">${new Date(file.deadline).toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'})}</div>
+          <div class="side-stat-sub ${days<=3?'val-red':''}">${days} days remaining</div>
+        </div>
+      </div>
+      <div class="side-card">
+        <div class="side-card-head">Practice area</div>
+        <div class="side-card-body">
+          <span class="badge ${badgeClass(file.practice_area)}" style="font-size:12px;padding:4px 10px">${file.practice_area}</span>
+        </div>
+      </div>
+      <div class="side-card">
+        <div class="side-card-head">Last activity</div>
+        <div class="side-card-body">
+          <div class="side-stat-val" style="font-size:14px">${new Date(file.last_activity_at).toLocaleDateString('en-CA',{month:'short',day:'numeric'})}</div>
+          <div class="side-stat-sub">${Math.ceil((new Date()-new Date(file.last_activity_at))/(1000*60*60*24))} days ago</div>
+        </div>
+      </div>
+      <button class="btn" style="width:100%;margin-top:4px;font-size:12px" onclick="showView('files',null)">← Back to files</button>
+    </div>
+  </div>`
+
+  document.getElementById('main-content').innerHTML = html
+}
+
+function toggleStage(el) {
+  const items = el.nextElementSibling
+  items.classList.toggle('open')
+  el.querySelector('span:last-child').textContent = items.classList.contains('open') ? '▴' : '▾'
+}
+
+function switchTab(tabEl, showId) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'))
+  tabEl.classList.add('active')
+  document.getElementById('tab-checklist').style.display = showId==='tab-checklist' ? 'block' : 'none'
+  document.getElementById('tab-notes').style.display = showId==='tab-notes' ? 'block' : 'none'
+}
+
+async function toggleTick(fileId, stage, itemKey, el) {
+  const done = !el.classList.contains('done')
+  el.classList.toggle('done', done)
+  await saveTick(fileId, stage, itemKey, done)
+  // Refresh completion stats in sidebar
+  const ticks = await getFileTicks(fileId)
+  const { data: file } = await db.from('files').select('*').eq('id', fileId).single()
+  const checklistKey = MATTER_TYPES[file.matter_type] || 'FAMILY_SEP'
+  const stages = CHECKLISTS[checklistKey]
+  const totalItems = stages.reduce((s,st)=>s+st.items.length,0)
+  const doneItems = ticks.filter(t=>t.completed).length
+  const completion = totalItems > 0 ? Math.round(doneItems/totalItems*100) : 0
+  const pctEl = document.querySelector('.side-stat-val')
+  if (pctEl) pctEl.textContent = completion + '%'
+}
+
+async function saveNotes(fileId) {
+  const notes = document.getElementById('file-notes-input').value
+  await db.from('files').update({ notes, last_activity_at: new Date().toISOString() }).eq('id', fileId)
+  alert('Notes saved.')
+}
+
+async function closeFile(fileId) {
+  if (!confirm('Mark this file as closed? Make sure the audit trail has been generated and uploaded to Clio first.')) return
+  await db.from('files').update({ status: 'closed' }).eq('id', fileId)
+  showView('files', null)
+}
+
+function showLogHold(fileId) {
+  const modal = `
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <h3>Log a hold</h3>
+        <div class="form-group">
+          <label class="form-label">Reason for hold</label>
+          <textarea class="form-input" id="hold-reason" rows="3" placeholder="e.g. Waiting on client financial disclosure documents..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="submitHold('${fileId}')">Log hold</button>
+        </div>
+      </div>
+    </div>`
+  document.getElementById('modal-container').innerHTML = modal
+}
+
+async function submitHold(fileId) {
+  const reason = document.getElementById('hold-reason').value.trim()
+  if (!reason) return
+  await logHold(fileId, reason)
+  closeModal()
+  openFile(fileId)
+}
+
+async function showHoldApprovals(fileId) {
+  const holds = await getHolds(fileId)
+  if (holds.length === 0) { alert('No pending holds on this file.'); return }
+  const list = holds.map(h => `
+    <div style="padding:10px 0;border-bottom:1px solid #f0f0eb">
+      <div style="font-size:13px;font-weight:500">${h.reason}</div>
+      <div style="font-size:11px;color:#888;margin-top:3px">Logged by ${h.logged_by_name} on ${new Date(h.created_at).toLocaleDateString('en-CA')}</div>
+      <button class="btn btn-primary btn-sm" style="margin-top:6px" onclick="approveHoldUI('${h.id}','${fileId}')">Approve hold</button>
+    </div>`).join('')
+  const modal = `
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <h3>Pending holds</h3>
+        ${list}
+        <div class="modal-actions"><button class="btn" onclick="closeModal()">Close</button></div>
+      </div>
+    </div>`
+  document.getElementById('modal-container').innerHTML = modal
+}
+
+async function approveHoldUI(holdId, fileId) {
+  await approveHold(holdId)
+  closeModal()
+  openFile(fileId)
+}
+
+function closeModal() {
+  document.getElementById('modal-container').innerHTML = ''
+}
+
+async function generateAuditPrint(fileId) {
+  const { data: file } = await db.from('files').select('*').eq('id', fileId).single()
+  const ticks = await getFileTicks(fileId)
+  const holds = await getHolds(fileId)
+  const checklistKey = MATTER_TYPES[file.matter_type] || 'FAMILY_SEP'
+  const stages = CHECKLISTS[checklistKey]
+  const totalItems = stages.reduce((s,st)=>s+st.items.length,0)
+  const doneItems = ticks.filter(t=>t.completed).length
+  const retentionYear = new Date().getFullYear() + 10
+
+  const w = window.open('','_blank')
+  w.document.write(`<!DOCTYPE html><html><head><title>HKS Law — Audit Trail — ${file.matter_number}</title>
+  <style>body{font-family:Arial,sans-serif;font-size:12px;color:#333;padding:30px;max-width:800px;margin:0 auto}
+  h1{font-size:18px;margin-bottom:4px}h2{font-size:14px;margin:20px 0 8px;border-bottom:1px solid #ddd;padding-bottom:4px}
+  .meta{font-size:11px;color:#666;margin-bottom:20px}.stage-title{font-size:13px;font-weight:bold;margin:14px 0 6px;background:#f5f5f5;padding:6px 8px}
+  .item{display:flex;gap:8px;padding:4px 0;border-bottom:1px solid #f0f0f0}.check{width:14px;height:14px;border:1px solid #ccc;border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .done-check{background:#3C3489;border-color:#3C3489;color:#fff;font-size:9px}.item-label{flex:1}.item-meta{font-size:10px;color:#999}
+  @media print{body{padding:15px}}</style></head><body>
+  <h1>HKS Law — File Audit Trail</h1>
+  <div class="meta">
+    <strong>Client:</strong> ${file.client_name} &nbsp;|&nbsp;
+    <strong>Matter:</strong> ${file.matter_type} &nbsp;|&nbsp;
+    <strong>Matter No:</strong> ${file.matter_number}<br>
+    <strong>Practice area:</strong> ${file.practice_area} &nbsp;|&nbsp;
+    <strong>Assigned to:</strong> ${file.assigned_to_name || file.assigned_to_email}<br>
+    <strong>Opened:</strong> ${new Date(file.created_at).toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric'})} &nbsp;|&nbsp;
+    <strong>Audit generated:</strong> ${new Date().toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'})}<br>
+    <strong>Generated by:</strong> ${currentUser.name} (${currentUser.email})<br>
+    <strong>Completion:</strong> ${doneItems} of ${totalItems} checklist items completed
+  </div>
+  <h2>Checklist audit</h2>`)
+
+  stages.forEach(stage => {
+    w.document.write(`<div class="stage-title">${stage.title}</div>`)
+    stage.items.forEach(item => {
+      const tick = ticks.find(t=>t.stage===stage.stage && t.item_key===item.key)
+      const done = tick?.completed
+      w.document.write(`<div class="item">
+        <div class="check ${done?'done-check':''}">${done?'✓':''}</div>
+        <div class="item-label">${item.label}
+          ${done&&tick?.completed_by_name?`<div class="item-meta">Completed by ${tick.completed_by_name} on ${new Date(tick.completed_at).toLocaleDateString('en-CA')}</div>`:''}
+          ${!done?'<div class="item-meta" style="color:#c0392b">Not completed</div>':''}
+        </div>
+      </div>`)
+    })
+  })
+
+  if (holds.length > 0) {
+    w.document.write('<h2>Holds logged</h2>')
+    holds.forEach(h => {
+      w.document.write(`<div style="padding:6px 0;border-bottom:1px solid #f0f0f0"><strong>${h.reason}</strong><br><span style="font-size:10px;color:#888">Logged by ${h.logged_by_name} on ${new Date(h.created_at).toLocaleDateString('en-CA')}</span></div>`)
+    })
+  }
+
+  w.document.write(`
+  <h2>File retention</h2>
+  <p>This file must be retained until <strong>${retentionYear}</strong> per Law Society of Ontario requirements (minimum 10 years from closing date). Destruction requires lawyer authorization and must comply with LSO file destruction procedures.</p>
+  <h2>Compliance declaration</h2>
+  <p>This audit trail was generated from the HKS Law Practice Management System on ${new Date().toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric'})}. It serves as a record of checklist compliance for LSO and LawPRO purposes.</p>
+  <div style="margin-top:40px;border-top:1px solid #ddd;padding-top:14px;font-size:11px;color:#888">HKS Law Professional Corporation · Kitchener, Ontario · hkslaw.ca</div>
+  <script>window.onload=function(){window.print()}<\/script>
+  </body></html>`)
+  w.document.close()
+}
+
+async function renderAudit() {
+  const files = await getFiles()
+  const allTicks = await Promise.all(files.map(f => getFileTicks(f.id)))
+  const allHolds = await Promise.all(files.map(f => getHolds(f.id)))
+
+  const stalled = files.filter((f,i) => {
+    const days = Math.ceil((new Date() - new Date(f.last_activity_at)) / (1000*60*60*24))
+    return days >= 7 && allHolds[i].length === 0
+  })
+
+  const pendingHolds = allHolds.flat()
+
+  let html = `
+    <div class="metric-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="metric"><div class="metric-label">Files audited</div><div class="metric-val">${files.length}</div></div>
+      <div class="metric"><div class="metric-label">Stalled files</div><div class="metric-val ${stalled.length>0?'val-red':''}">${stalled.length}</div></div>
+      <div class="metric"><div class="metric-label">Holds pending approval</div><div class="metric-val ${pendingHolds.length>0?'val-amber':''}">${pendingHolds.length}</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">File audit summary</div>
+      <div style="display:grid;grid-template-columns:1fr 80px 80px 90px 100px;gap:8px;padding:7px 14px;background:#f9f9f7;font-size:11px;color:#888;font-weight:500">
+        <span>File</span><span>Assigned</span><span>Progress</span><span>Last activity</span><span>Status</span>
+      </div>`
+
+  files.forEach((f,i) => {
+    const p = pct(allTicks[i])
+    const activityDays = Math.ceil((new Date() - new Date(f.last_activity_at)) / (1000*60*60*24))
+    const isStalled = activityDays >= 7 && allHolds[i].length === 0
+    const hasHold = allHolds[i].length > 0
+    const statusLabel = isStalled ? '<span style="color:#c0392b;font-weight:500">Stalled</span>' : hasHold ? '<span style="color:#e67e22">On hold</span>' : '<span style="color:#27ae60">Active</span>'
+    html += `
+      <div class="audit-row" onclick="openFile('${f.id}')" style="cursor:pointer" onmouseover="this.style.background='#f9f9f7'" onmouseout="this.style.background=''">
+        <div><div class="file-name">${f.client_name}</div><div class="file-matter">${f.matter_type}</div></div>
+        <span style="font-size:11px;color:#666">${f.assigned_to_name || f.assigned_to_email.split('@')[0]}</span>
+        <span style="font-size:11px;color:${p>=75?'#27ae60':p>=40?'#e67e22':'#c0392b'}">${p}%</span>
+        <span style="font-size:11px;color:${activityDays>=7?'#c0392b':'#666'}">${activityDays}d ago</span>
+        ${statusLabel}
+      </div>`
+  })
+
+  html += '</div>'
+  document.getElementById('main-content').innerHTML = html
+}
+
+async function renderStaff() {
+  if (!currentUser.isOwner) return
+
+  const staffList = ALLOWED_EMAILS.filter(e => !OWNER_EMAILS.includes(e))
+  const files = await getFiles()
+
+  let html = `
+    <div class="panel">
+      <div class="panel-head">Staff & access</div>
+      <div style="padding:12px 14px;font-size:12px;color:#888;border-bottom:1px solid #f0f0eb">
+        Staff log in using Google at this URL. Only the emails below can access the system.
+      </div>`
+
+  const allEmails = [...OWNER_EMAILS, ...staffList]
+  allEmails.forEach(email => {
+    const isOwner = OWNER_EMAILS.includes(email)
+    const name = email.split('@')[0].replace(/\./g,' ').replace(/\b\w/g,l=>l.toUpperCase())
+    const initials = name.split(' ').map(n=>n[0]).join('').slice(0,2)
+    const assignedFiles = files.filter(f=>f.assigned_to_email===email)
+    html += `
+      <div class="staff-row">
+        <div class="staff-init">${initials}</div>
+        <div>
+          <div style="font-size:12px;font-weight:500">${email}</div>
+          <div style="font-size:11px;color:#888">${isOwner?'Owner':'Staff'}</div>
+        </div>
+        <span class="badge ${isOwner?'badge-family':'badge-realestate'}">${isOwner?'Owner':'Staff'}</span>
+        <span style="font-size:11px;color:#666">${assignedFiles.length} files</span>
+        <span style="font-size:11px;color:#27ae60">Active</span>
+      </div>`
+  })
+
+  html += '</div>'
+  document.getElementById('main-content').innerHTML = html
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})
+initAuth()
+</script>
+</body>
+</html>
